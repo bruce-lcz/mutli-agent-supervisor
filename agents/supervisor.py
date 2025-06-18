@@ -73,55 +73,10 @@ class SupervisorAgent:
         # 獲取監督者的決策
         decision = self.chain.invoke({"input": json.dumps(input_data, ensure_ascii=False)})
         
-        # try:
-        # 解析決策
-        decision_data = json.loads(decision)
-        
-        # 驗證決策格式
-        if not isinstance(decision_data, dict):
-            raise ValueError("決策必須是 JSON 對象")
-        
-        required_fields = ["next_agent", "task", "is_complete"]
-        for field in required_fields:
-            if field not in decision_data:
-                raise ValueError(f"缺少必要字段: {field}")
-        
-        if decision_data["next_agent"] not in ["researcher", "analyst", "end"]:
-            raise ValueError("next_agent 必須是 researcher、analyst 或 end")
-        
-        if not isinstance(decision_data["is_complete"], bool):
-            raise ValueError("is_complete 必須是布爾值")
-        
-        if decision_data["is_complete"] and not decision_data.get("final_decision"):
-            raise ValueError("當 is_complete 為 true 時，必須提供 final_decision")
-        
-        # 返回新狀態
-        return {
-            "task_assignments": [{
-                "iteration": len(state.get("task_assignments", [])) + 1,
-                "agent": decision_data["next_agent"],
-                "task": decision_data["task"]
-            }],
-            "next_agent": decision_data["next_agent"],
-            "current_task": decision_data["task"],
-            "final_decision": decision_data.get("final_decision", ""),
-            "current_agent": "supervisor"
-        }
+        try:
+            # 解析決策
+            decision_data = json.loads(decision)
             
-<<<<<<< Updated upstream
-        # except (json.JSONDecodeError, ValueError) as e:
-        #     # 如果解析失敗，返回錯誤信息
-        #     error_msg = f"監督者決策解析失敗: {str(e)}"
-        #     print(f"\n錯誤: {error_msg}")
-        #     print(f"原始決策: {decision}")
-        #     return {
-        #         "task_assignments": [],
-        #         "next_agent": "end",
-        #         "current_task": state.get("current_task", ""),
-        #         "final_decision": error_msg,
-        #         "current_agent": "supervisor"
-        #     } 
-=======
             # 驗證決策格式
             if not isinstance(decision_data, dict):
                 raise ValueError("決策必須是 JSON 對象")
@@ -164,4 +119,3 @@ class SupervisorAgent:
                 "final_decision": error_msg,
                 "current_agent": "supervisor"
             } 
->>>>>>> Stashed changes
