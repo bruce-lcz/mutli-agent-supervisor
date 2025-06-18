@@ -29,18 +29,41 @@ class ResearcherAgent:
     
     def research(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """執行研究任務"""
-        # 準備輸入信息
-        input_data = {
-            "task": state.get("current_task", ""),
-            "previous_research": state.get("research_results", [])
-        }
-        
-        # 獲取研究結果
-        result = self.chain.invoke({"input": json.dumps(input_data, ensure_ascii=False)})
-        
-        # 返回新狀態
-        return {
-            "research_results": [result],
-            "current_agent": "researcher",
-            "next_agent": "supervisor"
-        } 
+        try:
+            # 準備輸入信息
+            input_data = {
+                "task": state.get("current_task", ""),
+                "previous_research": state.get("research_results", [])
+            }
+            
+            # 獲取研究結果
+            result = self.chain.invoke({"input": json.dumps(input_data, ensure_ascii=False)})
+            
+            # 返回新狀態，保持原有狀態的完整性
+            return {
+                "task_assignments": state.get("task_assignments", []),
+                "research_results": state.get("research_results", []) + [result],
+                "analysis_results": state.get("analysis_results", []),
+                "execution_times": state.get("execution_times", []),
+                "agent_sequence": state.get("agent_sequence", []),
+                "current_agent": "researcher",
+                "next_agent": "supervisor",
+                "current_task": state.get("current_task", ""),
+                "final_decision": state.get("final_decision", ""),
+                "iteration": state.get("iteration", 1)
+            }
+        except Exception as e:
+            print(f"\nResearcher 錯誤: {str(e)}")
+            # 返回錯誤狀態，但確保工作流可以繼續
+            return {
+                "task_assignments": state.get("task_assignments", []),
+                "research_results": state.get("research_results", []) + [f"研究過程中發生錯誤: {str(e)}"],
+                "analysis_results": state.get("analysis_results", []),
+                "execution_times": state.get("execution_times", []),
+                "agent_sequence": state.get("agent_sequence", []),
+                "current_agent": "researcher",
+                "next_agent": "supervisor",
+                "current_task": state.get("current_task", ""),
+                "final_decision": state.get("final_decision", ""),
+                "iteration": state.get("iteration", 1)
+            } 
