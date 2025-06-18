@@ -20,6 +20,9 @@ class AgentState(TypedDict):
     current_task: str
     final_decision: str
     iteration: int
+    start_time: float  # 新增：工作流開始時間
+    max_iterations: int  # 新增：最大迭代次數
+    max_execution_time: float  # 新增：最大執行時間（秒）
 
 def create_workflow() -> Graph:
     # 初始化 agents
@@ -174,6 +177,36 @@ def create_workflow() -> Graph:
     # 包裝工作流以確保返回最終狀態
     def wrapped_workflow(state: AgentState) -> AgentState:
         try:
+            # 檢查停止條件
+            current_time = time.time()
+            execution_time = current_time - state["start_time"]
+            
+            # 檢查是否超過最大迭代次數
+            if state["iteration"] > state["max_iterations"]:
+                print(f"\n達到最大迭代次數 {state['max_iterations']}，強制結束工作流")
+                state["final_decision"] = f"達到最大迭代次數 {state['max_iterations']}，工作流強制結束。\n當前決策：{state['final_decision']}"
+                state["next_agent"] = "end"
+                return state
+            
+            # 檢查是否超過最大執行時間
+            if execution_time > state["max_execution_time"]:
+                print(f"\n超過最大執行時間 {state['max_execution_time']} 秒，強制結束工作流")
+                state["final_decision"] = f"超過最大執行時間 {state['max_execution_time']} 秒，工作流強制結束。\n當前決策：{state['final_decision']}"
+                state["next_agent"] = "end"
+                return state
+            
+            # 檢查結果（如果已經有足夠的迭代次數）
+            if state["iteration"] > 3:
+                # 獲取最近三次迭代的結果
+                recent_results = state["analysis_results"][-3:] if state["analysis_results"] else []
+                if len(recent_results) >= 3:
+                    # 如果最近三次結果相似，可以考慮結束
+                    if all(result == recent_results[0] for result in recent_results):
+                        print("\n連續三次迭代結果相同，結束工作流")
+                        state["final_decision"] = f"連續三次迭代結果相同，工作流結束。\n最終決策：{state['final_decision']}"
+                        state["next_agent"] = "end"
+                        return state
+            
             result = app.invoke(state)
             
             # 如果結果為 None，檢查狀態轉換
@@ -212,5 +245,8 @@ def create_initial_state(task: str) -> AgentState:
         "next_agent": "supervisor",
         "current_task": task,
         "final_decision": "",
-        "iteration": 1
+        "iteration": 1,
+        "start_time": time.time(),  # 記錄開始時間
+        "max_iterations": 10,  # 設置最大迭代次數
+        "max_execution_time": 600  # 設置最大執行時間（10分鐘）
     } 
